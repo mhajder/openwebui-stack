@@ -1,0 +1,21 @@
+# =============================================================================
+# Traefik Compression & Performance Middleware
+# =============================================================================
+
+http:
+  middlewares:
+    # Compression middleware for responses
+    compress:
+      compress:
+        minResponseBodyBytes: 1024
+        excludedContentTypes:
+          - "application/octet-stream"
+          - "application/wasm"
+          - "image/*"
+          - "video/*"
+          - "audio/*"
+
+    # Connection timeout settings
+    connection-timeout:
+      passTLSClientCert:
+        pem: false

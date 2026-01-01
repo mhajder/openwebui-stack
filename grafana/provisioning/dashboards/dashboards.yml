@@ -1,0 +1,17 @@
+# =============================================================================
+# Grafana Dashboard Provisioning
+# =============================================================================
+
+apiVersion: 1
+
+providers:
+  - name: "Open WebUI Stack"
+    orgId: 1
+    folder: "Open WebUI Stack"
+    folderUid: "openwebui-stack"
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /otel-lgtm/grafana/conf/provisioning/dashboards/json

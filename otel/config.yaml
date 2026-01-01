@@ -1,0 +1,118 @@
+# =============================================================================
+# OpenTelemetry Collector Configuration
+# =============================================================================
+# Collects metrics from exporters and forwards to LGTM stack
+
+receivers:
+  # Prometheus receiver for scraping metrics
+  prometheus:
+    config:
+      scrape_configs:
+        # Node Exporter - System metrics
+        - job_name: "node-exporter"
+          scrape_interval: 15s
+          static_configs:
+            - targets: ["node-exporter:9100"]
+              labels:
+                job: "node"
+
+        # NVIDIA GPU Exporter
+        - job_name: "nvidia-gpu"
+          scrape_interval: 15s
+          static_configs:
+            - targets: ["nvidia-gpu-exporter:9400"]
+              labels:
+                job: "nvidia-gpu"
+
+        # Traefik metrics
+        - job_name: "traefik"
+          scrape_interval: 15s
+          static_configs:
+            - targets: ["traefik:8080"]
+              labels:
+                job: "traefik"
+
+        # Qdrant metrics
+        - job_name: "qdrant"
+          scrape_interval: 15s
+          static_configs:
+            - targets: ["qdrant:6333"]
+              labels:
+                job: "qdrant"
+          metrics_path: "/metrics"
+
+        # PostgreSQL metrics
+        - job_name: "postgres"
+          scrape_interval: 15s
+          static_configs:
+            - targets: ["postgres-exporter:9187"]
+              labels:
+                job: "postgres"
+
+  # OTLP receiver for traces and metrics from applications
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  # Batch processor for better performance
+  batch:
+    timeout: 10s
+    send_batch_size: 1024
+    send_batch_max_size: 2048
+
+  # Memory limiter to prevent OOM
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 512
+    spike_limit_mib: 128
+
+  # Resource processor to add metadata
+  resource:
+    attributes:
+      - key: service.namespace
+        value: openwebui-stack
+        action: upsert
+      - key: deployment.environment
+        value: production
+        action: upsert
+
+exporters:
+  # Export to LGTM stack via OTLP
+  otlphttp:
+    endpoint: http://lgtm:4318
+    tls:
+      insecure: true
+
+  # Debug exporter for troubleshooting
+  debug:
+    verbosity: basic
+
+service:
+  pipelines:
+    # Metrics pipeline
+    metrics:
+      receivers: [prometheus, otlp]
+      processors: [memory_limiter, batch, resource]
+      exporters: [otlphttp]
+
+    # Traces pipeline
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch, resource]
+      exporters: [otlphttp]
+
+    # Logs pipeline
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch, resource]
+      exporters: [otlphttp]
+
+  telemetry:
+    logs:
+      level: info
+    metrics:
+      level: basic

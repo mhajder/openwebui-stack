@@ -1,0 +1,53 @@
+# =============================================================================
+# Traefik Dynamic Configuration - Middlewares
+# =============================================================================
+
+http:
+  middlewares:
+    # Security headers
+    secure-headers:
+      headers:
+        accessControlAllowMethods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - OPTIONS
+        accessControlMaxAge: 100
+        hostsProxyHeaders:
+          - "X-Forwarded-Host"
+        stsSeconds: 63072000
+        stsIncludeSubdomains: true
+        stsPreload: true
+        forceSTSHeader: true
+        frameDeny: true
+        contentTypeNosniff: true
+        browserXssFilter: true
+        referrerPolicy: "origin-when-cross-origin"
+        permissionsPolicy: "camera=(), microphone=(self), geolocation=(), payment=()"
+
+    # Rate limiting
+    rate-limit:
+      rateLimit:
+        average: 100
+        burst: 50
+        period: 1s
+
+    # Compression
+    compress:
+      compress:
+        excludedContentTypes:
+          - text/event-stream
+
+    # Retry on failure
+    retry:
+      retry:
+        attempts: 3
+        initialInterval: 100ms
+
+    # WebSocket headers middleware
+    websocket-headers:
+      headers:
+        accessControlAllowCredentials: true
+        accessControlAllowHeaders:
+          - "*"

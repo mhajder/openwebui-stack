@@ -1,0 +1,53 @@
+# =============================================================================
+# LiteLLM Proxy Configuration
+# =============================================================================
+# Documentation: https://docs.litellm.ai/docs/proxy/configs
+
+# General settings
+general_settings:
+  # Enable detailed logging
+  store_model_in_db: true
+  store_prompts_in_spend_logs: true
+
+  # OTEL settings for observability
+  otel: true
+
+  # Request/Response logging
+  json_logs: false
+
+  # Background health checks
+  background_health_checks: false # Disables periodic background pings
+
+  # User header mappings - maps headers from Open WebUI to LiteLLM roles
+  user_header_mappings:
+    - header_name: X-OpenWebUI-User-Id
+      litellm_user_role: internal_user
+    - header_name: X-OpenWebUI-User-Email
+      litellm_user_role: customer
+
+# Litellm settings
+litellm_settings:
+  # Enable streaming
+  set_verbose: false
+
+  # Cache settings
+  cache: true
+  cache_params:
+    type: "redis"
+
+  # OpenTelemetry callbacks for traces, logs, metrics
+  callbacks: ["otel"]
+
+  # Request timeout
+  request_timeout: 6000
+
+  # Number of retries
+  num_retries: 3
+
+  # Fallback models configuration
+  fallbacks: []
+
+# Router settings
+router_settings:
+  routing_strategy: simple-shuffle # Prevents latency-based routing checks
+  enable_pre_call_checks: false # Disables checking model health before every call

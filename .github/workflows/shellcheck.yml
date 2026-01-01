@@ -1,0 +1,28 @@
+name: Shell Script Quality Check
+
+on:
+    push:
+        paths: ["**/*.sh"]
+    pull_request:
+        paths: ["**/*.sh"]
+
+permissions:
+    contents: read
+
+jobs:
+    sh-checker:
+        name: Code Analysis
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Run the sh-checker
+              uses: luizm/action-sh-checker@master
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  SHELLCHECK_OPTS: -S warning
+                  SHFMT_OPTS: -s -i 4
+              with:
+                  sh_checker_comment: true

@@ -1,0 +1,73 @@
+# =============================================================================
+# Traefik Static Configuration
+# =============================================================================
+
+# API and Dashboard
+api:
+  dashboard: true
+  insecure: false
+
+# Ping endpoint for healthcheck
+ping:
+  entryPoint: traefik
+
+# Entry Points
+entryPoints:
+  web:
+    address: ":80"
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+          permanent: true
+
+  websecure:
+    address: ":443"
+    http:
+      tls: {}
+
+  traefik:
+    address: ":8080"
+
+# Providers
+providers:
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false
+    network: openwebui-stack_frontend
+    watch: true
+
+  file:
+    directory: /etc/traefik/dynamic
+    watch: true
+
+# Servers Transport (global HTTP client settings)
+serversTransport:
+  forwardingTimeouts:
+    dialTimeout: "10s"
+    responseHeaderTimeout: "10s"
+    idleConnTimeout: "90s"
+  maxIdleConnsPerHost: 10
+
+# Logging
+log:
+  level: INFO
+  format: json
+  filePath: /var/log/traefik/traefik.log
+
+accessLog:
+  filePath: /var/log/traefik/access.log
+  format: json
+  bufferingSize: 100
+  filters:
+    statusCodes:
+      - "200-599"
+
+# Metrics - Export to Prometheus
+metrics:
+  prometheus:
+    addEntryPointsLabels: true
+    addRoutersLabels: true
+    addServicesLabels: true
+    entryPoint: traefik

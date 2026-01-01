@@ -1,0 +1,27 @@
+# =============================================================================
+# Qdrant Vector Database Configuration
+# =============================================================================
+
+# Service configuration
+service:
+  http_port: 6333
+  grpc_port: 6334
+  enable_tls: false
+
+# Storage configuration
+storage:
+  # Storage path
+  storage_path: /qdrant/storage
+
+  # Snapshots path
+  snapshots_path: /qdrant/snapshots
+
+  # Enable async scorer
+  async_scorer: true
+
+# Cluster configuration (for future scaling)
+cluster:
+  enabled: false
+
+# Telemetry
+telemetry_disabled: true

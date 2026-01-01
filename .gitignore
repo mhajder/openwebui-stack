@@ -1,0 +1,61 @@
+# =============================================================================
+# Git Ignore for Open WebUI Stack
+# =============================================================================
+
+# Environment files with secrets
+.env
+*.env.local
+*.env.*.local
+
+# SSL Certificates (generated locally)
+certs/
+*.crt
+*.key
+*.pem
+
+# Data directories (Docker volumes)
+*_data/
+data/
+
+# Backup files
+backups/
+*.tar.gz
+*.sql
+
+# Log files
+logs/
+*.log
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Docker
+.docker/
+
+# Python (if any scripts)
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+venv/
+.venv/
+
+# Node (if any scripts)
+node_modules/
+npm-debug.log*
+
+# Keep directories but not contents
+!grafana/provisioning/dashboards/json/.gitkeep
