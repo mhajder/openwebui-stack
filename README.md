@@ -56,7 +56,7 @@ Docker Compose stack for [Open WebUI](https://github.com/open-webui/open-webui) 
 1. **Clone the repository**
    ```bash
    git clone https://github.com/mhajder/openwebui-stack.git
-   cd open-webui-stack
+   cd openwebui-stack
    ```
 
 2. **Run the setup script**
