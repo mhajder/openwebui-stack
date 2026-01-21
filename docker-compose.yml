@@ -14,7 +14,7 @@ services:
   # ===========================================================================
   traefik:
     image: traefik:v3.6
-    container_name: ${COMPOSE_PROJECT_NAME}_traefik
+    container_name: ${COMPOSE_PROJECT_NAME:-openwebui-stack}_traefik
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
@@ -34,13 +34,13 @@ services:
       - backend
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.traefik.rule=Host(`traefik.${DOMAIN}`)"
+      - "traefik.http.routers.traefik.rule=Host(`traefik.${DOMAIN:-localhost}`)"
       - "traefik.http.routers.traefik.entrypoints=websecure"
       - "traefik.http.routers.traefik.tls=true"
       - "traefik.http.routers.traefik.service=api@internal"
       - "traefik.http.routers.traefik.middlewares=dashboard-auth"
       # Dashboard with basic auth (credentials from environment)
-      - "traefik.http.middlewares.dashboard-auth.basicauth.users=${TRAEFIK_DASHBOARD_USER}:${TRAEFIK_DASHBOARD_PASSWORD_HASH}"
+      - "traefik.http.middlewares.dashboard-auth.basicauth.users=${TRAEFIK_DASHBOARD_USER:-admin}:${TRAEFIK_DASHBOARD_PASSWORD_HASH:?error}"
     healthcheck:
       test: [ "CMD", "traefik", "healthcheck", "--ping" ]
       interval: 30s
@@ -53,21 +53,21 @@ services:
   # ===========================================================================
   open-webui:
     image: ghcr.io/open-webui/open-webui:main
-    container_name: ${COMPOSE_PROJECT_NAME}_open-webui
+    container_name: ${COMPOSE_PROJECT_NAME:-openwebui-stack}_open-webui
     restart: unless-stopped
     logging: *default-logging
     volumes:
       - openwebui_data:/app/backend/data
     environment:
       # Database configuration
-      DATABASE_URL: "postgresql://${OPENWEBUI_DB_USER}:${OPENWEBUI_DB_PASSWORD}@postgres:5432/${OPENWEBUI_DB_NAME}"
+      DATABASE_URL: "postgresql://${OPENWEBUI_DB_USER:-openwebui}:${OPENWEBUI_DB_PASSWORD:?error}@postgres:5432/${OPENWEBUI_DB_NAME:-openwebui}"
 
       # Security
-      WEBUI_SECRET_KEY: "${OPENWEBUI_SECRET_KEY}"
-      WEBUI_URL: "https://${DOMAIN}"
+      WEBUI_SECRET_KEY: "${OPENWEBUI_SECRET_KEY:?error}"
+      WEBUI_URL: "https://${DOMAIN:-localhost}"
 
       # Redis caching configuration (using Valkey)
-      REDIS_URL: "redis://:${VALKEY_PASSWORD}@valkey:6379"
+      REDIS_URL: "redis://:${VALKEY_PASSWORD:?error}@valkey:6379"
 
       # OpenTelemetry configuration for observability
       ENABLE_OTEL: "true"
@@ -81,11 +81,11 @@ services:
       # RAG configuration with Qdrant
       VECTOR_DB: "qdrant"
       QDRANT_URI: "http://qdrant:6333"
-      QDRANT_API_KEY: "${QDRANT_API_KEY}"
+      QDRANT_API_KEY: "${QDRANT_API_KEY:?error}"
 
       # LiteLLM as the primary model provider
       OPENAI_API_BASE_URL: "http://litellm:4000/v1"
-      OPENAI_API_KEY: "${LITELLM_MASTER_KEY}"
+      OPENAI_API_KEY: "${LITELLM_MASTER_KEY:?error}"
 
       # Disable Ollama
       ENABLE_OLLAMA_API: "false"
@@ -116,7 +116,7 @@ services:
       - "host.docker.internal:host-gateway"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.openwebui.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.openwebui.rule=Host(`${DOMAIN:-localhost}`)"
       - "traefik.http.routers.openwebui.entrypoints=websecure"
       - "traefik.http.routers.openwebui.tls=true"
       - "traefik.http.services.openwebui.loadbalancer.server.port=8080"
@@ -135,22 +135,22 @@ services:
   # ===========================================================================
   litellm:
     image: ghcr.io/berriai/litellm:main-latest
-    container_name: ${COMPOSE_PROJECT_NAME}_litellm
+    container_name: ${COMPOSE_PROJECT_NAME:-openwebui-stack}_litellm
     restart: unless-stopped
     logging: *default-logging
     volumes:
       - ./litellm/config.yaml:/app/config.yaml:ro
     environment:
       # Database for LiteLLM
-      DATABASE_URL: "postgresql://${LITELLM_DB_USER}:${LITELLM_DB_PASSWORD}@postgres:5432/${LITELLM_DB_NAME}"
+      DATABASE_URL: "postgresql://${LITELLM_DB_USER:-litellm}:${LITELLM_DB_PASSWORD:?error}@postgres:5432/${LITELLM_DB_NAME:-litellm}"
       STORE_MODEL_IN_DB: "True"
 
       # Authentication
-      LITELLM_MASTER_KEY: "${LITELLM_MASTER_KEY}"
-      LITELLM_SALT_KEY: "${LITELLM_SALT_KEY}"
+      LITELLM_MASTER_KEY: "${LITELLM_MASTER_KEY:?error}"
+      LITELLM_SALT_KEY: "${LITELLM_SALT_KEY:?error}"
 
       # Redis/Valkey Cache Authentication
-      REDIS_PASSWORD: "${VALKEY_PASSWORD}"
+      REDIS_PASSWORD: "${VALKEY_PASSWORD:?error}"
       REDIS_HOST: "valkey"
       REDIS_PORT: "6379"
 
@@ -178,7 +178,7 @@ services:
       - "host.docker.internal:host-gateway"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.litellm.rule=Host(`litellm.${DOMAIN}`)"
+      - "traefik.http.routers.litellm.rule=Host(`litellm.${DOMAIN:-localhost}`)"
       - "traefik.http.routers.litellm.entrypoints=websecure"
       - "traefik.http.routers.litellm.tls=true"
       - "traefik.http.services.litellm.loadbalancer.server.port=4000"
@@ -194,21 +194,21 @@ services:
   # ===========================================================================
   postgres:
     image: postgres:18-alpine
-    container_name: ${COMPOSE_PROJECT_NAME}_postgres
+    container_name: ${COMPOSE_PROJECT_NAME:-openwebui-stack}_postgres
     restart: unless-stopped
     logging: *default-logging
     environment:
-      POSTGRES_USER: "${POSTGRES_USER}"
-      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
-      POSTGRES_DB: "${POSTGRES_DB}"
+      POSTGRES_USER: "${POSTGRES_USER:-postgres}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?error}"
+      POSTGRES_DB: "${POSTGRES_DB:-postgres}"
       # Open WebUI Database Configuration
-      OPENWEBUI_DB_NAME: "${OPENWEBUI_DB_NAME}"
-      OPENWEBUI_DB_USER: "${OPENWEBUI_DB_USER}"
-      OPENWEBUI_DB_PASSWORD: "${OPENWEBUI_DB_PASSWORD}"
+      OPENWEBUI_DB_NAME: "${OPENWEBUI_DB_NAME:-openwebui}"
+      OPENWEBUI_DB_USER: "${OPENWEBUI_DB_USER:-openwebui}"
+      OPENWEBUI_DB_PASSWORD: "${OPENWEBUI_DB_PASSWORD:?error}"
       # LiteLLM Database Configuration
-      LITELLM_DB_NAME: "${LITELLM_DB_NAME}"
-      LITELLM_DB_USER: "${LITELLM_DB_USER}"
-      LITELLM_DB_PASSWORD: "${LITELLM_DB_PASSWORD}"
+      LITELLM_DB_NAME: "${LITELLM_DB_NAME:-litellm}"
+      LITELLM_DB_USER: "${LITELLM_DB_USER:-litellm}"
+      LITELLM_DB_PASSWORD: "${LITELLM_DB_PASSWORD:?error}"
       # Query Optimization Settings
       POSTGRES_INITDB_ARGS: "-c shared_buffers=256MB -c effective_cache_size=1GB -c maintenance_work_mem=64MB -c work_mem=16MB -c max_connections=200 -c max_prepared_transactions=100"
     volumes:
@@ -228,7 +228,7 @@ services:
   # ===========================================================================
   valkey:
     image: valkey/valkey:9-alpine
-    container_name: ${COMPOSE_PROJECT_NAME}_valkey
+    container_name: ${COMPOSE_PROJECT_NAME:-openwebui-stack}_valkey
     restart: unless-stopped
     logging: *default-logging
     volumes:
@@ -253,7 +253,7 @@ services:
       - "--maxmemory-policy"
       - "allkeys-lru"
       - "--requirepass"
-      - "${VALKEY_PASSWORD}"
+      - "${VALKEY_PASSWORD:?error}"
     networks:
       - backend
     healthcheck:
@@ -268,14 +268,14 @@ services:
   # ===========================================================================
   qdrant:
     image: qdrant/qdrant:latest
-    container_name: ${COMPOSE_PROJECT_NAME}_qdrant
+    container_name: ${COMPOSE_PROJECT_NAME:-openwebui-stack}_qdrant
     restart: unless-stopped
     logging: *default-logging
     volumes:
       - qdrant_data:/qdrant/storage
       - ./qdrant/config.yaml:/qdrant/config/config.yaml:ro
     environment:
-      QDRANT__SERVICE__API_KEY: "${QDRANT_API_KEY}"
+      QDRANT__SERVICE__API_KEY: "${QDRANT_API_KEY:?error}"
     networks:
       - backend
     healthcheck:
@@ -290,17 +290,17 @@ services:
   # ===========================================================================
   lgtm:
     image: grafana/otel-lgtm:latest
-    container_name: ${COMPOSE_PROJECT_NAME}_lgtm
+    container_name: ${COMPOSE_PROJECT_NAME:-openwebui-stack}_lgtm
     restart: unless-stopped
     logging: *default-logging
     volumes:
       - lgtm_data:/data
       - ./grafana/provisioning:/otel-lgtm/grafana/conf/provisioning:ro
     environment:
-      GF_SECURITY_ADMIN_USER: "${GF_SECURITY_ADMIN_USER}"
-      GF_SECURITY_ADMIN_PASSWORD: "${GF_SECURITY_ADMIN_PASSWORD}"
+      GF_SECURITY_ADMIN_USER: "${GF_SECURITY_ADMIN_USER:-admin}"
+      GF_SECURITY_ADMIN_PASSWORD: "${GF_SECURITY_ADMIN_PASSWORD:?error}"
       GF_PATHS_DATA: "/data/grafana"
-      GF_SERVER_ROOT_URL: "https://grafana.${DOMAIN}"
+      GF_SERVER_ROOT_URL: "https://grafana.${DOMAIN:-localhost}"
       # Disable anonymous access - require login
       GF_AUTH_ANONYMOUS_ENABLED: "false"
       GF_AUTH_DISABLE_LOGIN_FORM: "false"
@@ -311,7 +311,7 @@ services:
       - "host.docker.internal:host-gateway"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.grafana.rule=Host(`grafana.${DOMAIN}`)"
+      - "traefik.http.routers.grafana.rule=Host(`grafana.${DOMAIN:-localhost}`)"
       - "traefik.http.routers.grafana.entrypoints=websecure"
       - "traefik.http.routers.grafana.tls=true"
       - "traefik.http.services.grafana.loadbalancer.server.port=3000"
@@ -321,7 +321,7 @@ services:
   # ===========================================================================
   node-exporter:
     image: prom/node-exporter:latest
-    container_name: ${COMPOSE_PROJECT_NAME}_node-exporter
+    container_name: ${COMPOSE_PROJECT_NAME:-openwebui-stack}_node-exporter
     restart: unless-stopped
     logging: *default-logging
     volumes:
@@ -348,11 +348,11 @@ services:
   # ===========================================================================
   postgres-exporter:
     image: prometheuscommunity/postgres-exporter:latest
-    container_name: ${COMPOSE_PROJECT_NAME}_postgres-exporter
+    container_name: ${COMPOSE_PROJECT_NAME:-openwebui-stack}_postgres-exporter
     restart: unless-stopped
     logging: *default-logging
     environment:
-      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable"
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?error}@postgres:5432/${POSTGRES_DB:-postgres}?sslmode=disable"
     networks:
       - backend
     depends_on:
@@ -366,7 +366,7 @@ services:
   # ===========================================================================
   nvidia-gpu-exporter:
     image: nvidia/dcgm-exporter:latest
-    container_name: ${COMPOSE_PROJECT_NAME}_nvidia-gpu-exporter
+    container_name: ${COMPOSE_PROJECT_NAME:-openwebui-stack}_nvidia-gpu-exporter
     restart: unless-stopped
     logging: *default-logging
     runtime: nvidia
@@ -382,7 +382,7 @@ services:
   # ===========================================================================
   otel-collector:
     image: otel/opentelemetry-collector-contrib:latest
-    container_name: ${COMPOSE_PROJECT_NAME}_otel-collector
+    container_name: ${COMPOSE_PROJECT_NAME:-openwebui-stack}_otel-collector
     restart: unless-stopped
     logging: *default-logging
     command: [ "--config=/etc/otel/config.yaml" ]
@@ -403,25 +403,25 @@ services:
 networks:
   frontend:
     driver: bridge
-    name: ${COMPOSE_PROJECT_NAME}_frontend
+    name: ${COMPOSE_PROJECT_NAME:-openwebui-stack}_frontend
   backend:
     driver: bridge
     internal: true
-    name: ${COMPOSE_PROJECT_NAME}_backend
+    name: ${COMPOSE_PROJECT_NAME:-openwebui-stack}_backend
 
 # =============================================================================
 # Volumes
 # =============================================================================
 volumes:
   postgres_data:
-    name: ${COMPOSE_PROJECT_NAME}_postgres_data
+    name: ${COMPOSE_PROJECT_NAME:-openwebui-stack}_postgres_data
   openwebui_data:
-    name: ${COMPOSE_PROJECT_NAME}_openwebui_data
+    name: ${COMPOSE_PROJECT_NAME:-openwebui-stack}_openwebui_data
   valkey_data:
-    name: ${COMPOSE_PROJECT_NAME}_valkey_data
+    name: ${COMPOSE_PROJECT_NAME:-openwebui-stack}_valkey_data
   qdrant_data:
-    name: ${COMPOSE_PROJECT_NAME}_qdrant_data
+    name: ${COMPOSE_PROJECT_NAME:-openwebui-stack}_qdrant_data
   lgtm_data:
-    name: ${COMPOSE_PROJECT_NAME}_lgtm_data
+    name: ${COMPOSE_PROJECT_NAME:-openwebui-stack}_lgtm_data
   traefik_logs:
-    name: ${COMPOSE_PROJECT_NAME}_traefik_logs
+    name: ${COMPOSE_PROJECT_NAME:-openwebui-stack}_traefik_logs
