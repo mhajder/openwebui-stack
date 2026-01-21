@@ -4,32 +4,34 @@ Docker Compose stack for [Open WebUI](https://github.com/open-webui/open-webui) 
 
 ## Architecture
 
-```
-                                    ┌─────────────────┐
-                                    │    Internet     │
-                                    └────────┬────────┘
-                                             │ HTTPS
-                                    ┌────────▼────────┐
-                                    │     Traefik     │
-                                    └────┬───┬───┬────┘
-                  ┌──────────────────────┘   │   └───────────────────────┐
-                  │                          │                           │
-         ┌────────▼─────────┐       ┌────────▼─────────┐        ┌────────▼─────────┐
-         │   Open WebUI     │──────►│     LiteLLM      │        │    LGTM Stack    │
-         └─┬────────┬───────┘       └─┬──────────────┬─┘        └────────▲─────────┘
-           │        │                 │              │                   │
-           │        └────────┐        │              │                   │
-           │                 │        │              │                   │
-           │                 │        │              │                   │
-  ┌────────▼─────────┐    ┌──▼────────▼──┐    ┌──────▼────────┐    ┌─────┴──────┐
-  │      Qdrant      │    │    Valkey    │    │   PostgreSQL  │    │    OTEL    │
-  │   (Vector DB)    │    │(Shared Cache)│    │  (Shared DB)  │    │  Collector │
-  └──────────────────┘    └──────────────┘    └──────▲────────┘    └─────▲──────┘
-                                                     │                   │
-                                                     │          ┌────────┴────────┐
-                                                     └──────────┤    Exporters    │
-                                                                │  (Node/PG/GPU)  │
-                                                                └─────────────────┘
+```mermaid
+graph TB
+    Internet[Internet]
+    Traefik[Traefik<br/>Reverse Proxy]
+    OpenWebUI[Open WebUI]
+    LiteLLM[LiteLLM<br/>Proxy]
+    LGTM[LGTM Stack<br/>Grafana/Loki/Tempo/Mimir]
+    Qdrant[Qdrant<br/>Vector DB]
+    Valkey[Valkey<br/>Shared Cache]
+    PostgreSQL[PostgreSQL<br/>Shared DB]
+    OTEL[OpenTelemetry<br/>Collector]
+    Exporters[Exporters<br/>Node/PostgreSQL/GPU]
+    
+    Internet -->|HTTPS| Traefik
+    Traefik --> OpenWebUI
+    Traefik --> LiteLLM
+    Traefik --> LGTM
+    
+    OpenWebUI --> Qdrant
+    OpenWebUI --> Valkey
+    OpenWebUI --> LiteLLM
+    
+    LiteLLM --> Valkey
+    LiteLLM --> PostgreSQL
+    
+    Exporters --> PostgreSQL
+    Exporters --> OTEL
+    OTEL --> LGTM
 ```
 
 ## Features
