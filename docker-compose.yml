@@ -212,7 +212,7 @@ services:
       # Query Optimization Settings
       POSTGRES_INITDB_ARGS: "-c shared_buffers=256MB -c effective_cache_size=1GB -c maintenance_work_mem=64MB -c work_mem=16MB -c max_connections=200 -c max_prepared_transactions=100"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql
       - ./init-db:/docker-entrypoint-initdb.d:ro
     networks:
       - backend
