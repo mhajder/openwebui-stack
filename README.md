@@ -6,32 +6,59 @@ Docker Compose stack for [Open WebUI](https://github.com/open-webui/open-webui) 
 
 ```mermaid
 graph TB
-    Internet[Internet]
-    Traefik[Traefik<br/>Reverse Proxy]
-    OpenWebUI[Open WebUI]
-    LiteLLM[LiteLLM<br/>Proxy]
-    LGTM[LGTM Stack<br/>Grafana/Loki/Tempo/Mimir]
-    Qdrant[Qdrant<br/>Vector DB]
-    Valkey[Valkey<br/>Shared Cache]
-    PostgreSQL[PostgreSQL<br/>Shared DB]
-    OTEL[OpenTelemetry<br/>Collector]
-    Exporters[Exporters<br/>Node/PostgreSQL/GPU]
+    classDef internet fill:#f9f9f9,stroke:#333,stroke-width:2px,color:#333,stroke-dasharray: 5 5;
+    classDef proxy fill:#f39c12,stroke:#e67e22,stroke-width:2px,color:#fff;
+    classDef app fill:#3498db,stroke:#2980b9,stroke-width:2px,color:#fff;
+    classDef db fill:#2ecc71,stroke:#27ae60,stroke-width:2px,color:#fff;
+    classDef obs fill:#9b59b6,stroke:#8e44ad,stroke-width:2px,color:#fff;
+
+    Internet((Internet)):::internet
+
+    subgraph Ingress [Ingress / Proxy]
+        Traefik[Traefik<br/>Reverse Proxy]:::proxy
+    end
+
+    subgraph Core [Core Applications]
+        OpenWebUI[Open WebUI]:::app
+        LiteLLM[LiteLLM<br/>Proxy]:::app
+    end
+
+    subgraph Data [Data & Storage]
+        Qdrant[(Qdrant<br/>Vector DB)]:::db
+        Valkey[(Valkey<br/>Cache)]:::db
+        PostgreSQL[(PostgreSQL<br/>Database)]:::db
+    end
+
+    subgraph Observability [Observability Stack]
+        LGTM[LGTM Stack<br/>Grafana/Loki/Tempo/Mimir]:::obs
+        OTEL[OTEL Collector]:::obs
+        Exporters[Metrics Exporters]:::obs
+    end
     
+    %% Traffic flow
     Internet -->|HTTPS| Traefik
-    Traefik --> OpenWebUI
-    Traefik --> LiteLLM
-    Traefik --> LGTM
     
-    OpenWebUI --> Qdrant
-    OpenWebUI --> Valkey
-    OpenWebUI --> LiteLLM
+    Traefik -->|HTTP| OpenWebUI
+    Traefik -->|HTTP| LiteLLM
+    Traefik -->|HTTP| LGTM
     
-    LiteLLM --> Valkey
-    LiteLLM --> PostgreSQL
+    OpenWebUI -->|API| Qdrant
+    OpenWebUI -->|RESP| Valkey
+    OpenWebUI -->|SQL| PostgreSQL
+
+    OpenWebUI -->|API| LiteLLM
     
-    Exporters --> PostgreSQL
-    Exporters --> OTEL
-    OTEL --> LGTM
+    LiteLLM -->|RESP| Valkey
+    LiteLLM -->|SQL| PostgreSQL
+    
+    %% Exporters querying targets
+    Exporters -.->|Scrape| PostgreSQL
+    
+    %% Telemetry flow (dashed)
+    LiteLLM -.->|OTLP| LGTM
+    OpenWebUI -.->|OTLP| LGTM
+    Exporters -.->|Metrics| OTEL
+    OTEL -.->|Push| LGTM
 ```
 
 ## Features
