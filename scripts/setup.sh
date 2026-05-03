@@ -13,6 +13,15 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
+# Cross-platform sed in-place editing (macOS BSD sed vs GNU sed)
+sed_inplace() {
+    if [[ $OSTYPE == "darwin"* ]]; then
+        sed -i '' "$@"
+    else
+        sed -i "$@"
+    fi
+}
+
 # Helper function to generate htpasswd hash (apr1 format)
 generate_htpasswd() {
     local password="$1"
@@ -109,7 +118,7 @@ fi
 
 # Set domain in .env
 if [ -f "$PROJECT_ROOT/.env" ]; then
-    sed -i "s/DOMAIN=.*/DOMAIN=$DOMAIN/g" "$PROJECT_ROOT/.env"
+    sed_inplace "s/DOMAIN=.*/DOMAIN=$DOMAIN/g" "$PROJECT_ROOT/.env"
     echo -e "${GREEN}✓ Set domain to: $DOMAIN${NC}"
 fi
 
@@ -128,23 +137,23 @@ if [ "$GENERATE_PASSWORDS" = true ]; then
     TRAEFIK_PASS=$(generate_password)
 
     # Replace all passwords with specific line patterns to avoid substring matches
-    sed -i "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$POSTGRES_PASS|" "$PROJECT_ROOT/.env"
-    sed -i "s|^OPENWEBUI_DB_PASSWORD=.*|OPENWEBUI_DB_PASSWORD=$OPENWEBUI_DB_PASS|" "$PROJECT_ROOT/.env"
-    sed -i "s|^LITELLM_DB_PASSWORD=.*|LITELLM_DB_PASSWORD=$LITELLM_DB_PASS|" "$PROJECT_ROOT/.env"
-    sed -i "s|^OPENWEBUI_SECRET_KEY=.*|OPENWEBUI_SECRET_KEY=$OPENWEBUI_SECRET|" "$PROJECT_ROOT/.env"
-    sed -i "s|^LITELLM_MASTER_KEY=.*|LITELLM_MASTER_KEY=$LITELLM_MASTER|" "$PROJECT_ROOT/.env"
-    sed -i "s|^LITELLM_SALT_KEY=.*|LITELLM_SALT_KEY=$LITELLM_SALT|" "$PROJECT_ROOT/.env"
-    sed -i "s|^GF_SECURITY_ADMIN_PASSWORD=.*|GF_SECURITY_ADMIN_PASSWORD=$GRAFANA_PASS|" "$PROJECT_ROOT/.env"
-    sed -i "s|^QDRANT_API_KEY=.*|QDRANT_API_KEY=$QDRANT_KEY|" "$PROJECT_ROOT/.env"
-    sed -i "s|^VALKEY_PASSWORD=.*|VALKEY_PASSWORD=$VALKEY_PASS|" "$PROJECT_ROOT/.env"
-    sed -i "s|^TRAEFIK_DASHBOARD_PASSWORD=.*|TRAEFIK_DASHBOARD_PASSWORD=$TRAEFIK_PASS|" "$PROJECT_ROOT/.env"
+    sed_inplace "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$POSTGRES_PASS|" "$PROJECT_ROOT/.env"
+    sed_inplace "s|^OPENWEBUI_DB_PASSWORD=.*|OPENWEBUI_DB_PASSWORD=$OPENWEBUI_DB_PASS|" "$PROJECT_ROOT/.env"
+    sed_inplace "s|^LITELLM_DB_PASSWORD=.*|LITELLM_DB_PASSWORD=$LITELLM_DB_PASS|" "$PROJECT_ROOT/.env"
+    sed_inplace "s|^OPENWEBUI_SECRET_KEY=.*|OPENWEBUI_SECRET_KEY=$OPENWEBUI_SECRET|" "$PROJECT_ROOT/.env"
+    sed_inplace "s|^LITELLM_MASTER_KEY=.*|LITELLM_MASTER_KEY=$LITELLM_MASTER|" "$PROJECT_ROOT/.env"
+    sed_inplace "s|^LITELLM_SALT_KEY=.*|LITELLM_SALT_KEY=$LITELLM_SALT|" "$PROJECT_ROOT/.env"
+    sed_inplace "s|^GF_SECURITY_ADMIN_PASSWORD=.*|GF_SECURITY_ADMIN_PASSWORD=$GRAFANA_PASS|" "$PROJECT_ROOT/.env"
+    sed_inplace "s|^QDRANT_API_KEY=.*|QDRANT_API_KEY=$QDRANT_KEY|" "$PROJECT_ROOT/.env"
+    sed_inplace "s|^VALKEY_PASSWORD=.*|VALKEY_PASSWORD=$VALKEY_PASS|" "$PROJECT_ROOT/.env"
+    sed_inplace "s|^TRAEFIK_DASHBOARD_PASSWORD=.*|TRAEFIK_DASHBOARD_PASSWORD=$TRAEFIK_PASS|" "$PROJECT_ROOT/.env"
 
     # Generate Traefik dashboard password hash from the plain password we just set
     TRAEFIK_HASH=$(generate_htpasswd "$TRAEFIK_PASS")
     # Escape $ signs for Docker Compose variable interpolation (apr1 hashes use $ in format)
     # Also escape special characters for sed
     ESCAPED_HASH=$(echo "$TRAEFIK_HASH" | sed 's/\$/$$/g' | sed 's/[\/&]/\\&/g')
-    sed -i "s|^TRAEFIK_DASHBOARD_PASSWORD_HASH=.*|TRAEFIK_DASHBOARD_PASSWORD_HASH=$ESCAPED_HASH|" "$PROJECT_ROOT/.env"
+    sed_inplace "s|^TRAEFIK_DASHBOARD_PASSWORD_HASH=.*|TRAEFIK_DASHBOARD_PASSWORD_HASH=$ESCAPED_HASH|" "$PROJECT_ROOT/.env"
 
     echo -e "${GREEN}✓ Generated secure passwords${NC}"
 fi

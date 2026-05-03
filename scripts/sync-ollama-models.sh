@@ -81,8 +81,8 @@ fi
 if command -v jq &>/dev/null; then
     MODELS=$(echo "$RESPONSE" | jq -r '.models[].name')
 else
-    # Fallback to grep/sed parsing
-    MODELS=$(echo "$RESPONSE" | grep -oP '"name"\s*:\s*"\K[^"]+')
+    # Fallback to grep/sed parsing (portable, no -P flag)
+    MODELS=$(echo "$RESPONSE" | grep -oE '"name"\s*:\s*"[^"]+"' | sed 's/"name"[[:space:]]*:[[:space:]]*"//;s/"$//')
 fi
 
 if [ -z "$MODELS" ]; then
@@ -94,8 +94,11 @@ MODEL_COUNT=$(echo "$MODELS" | wc -l)
 echo -e "${GREEN}Found ${MODEL_COUNT} models in Ollama${NC}"
 echo ""
 
-# Convert to array for counting
-mapfile -t MODELS_ARRAY <<<"$MODELS"
+# Convert to array for counting (portable, works with bash 3.2+)
+MODELS_ARRAY=()
+while IFS= read -r line; do
+    [ -n "$line" ] && MODELS_ARRAY+=("$line")
+done <<<"$MODELS"
 
 # Fetch existing models from LiteLLM
 echo -e "${BLUE}Fetching models from LiteLLM...${NC}"
@@ -108,7 +111,7 @@ if LITELLM_RESPONSE=$(curl -k -s -X GET \
     if command -v jq &>/dev/null; then
         EXISTING_MODELS=$(echo "$LITELLM_RESPONSE" | jq -r '.data[].id' 2>/dev/null | sort)
     else
-        EXISTING_MODELS=$(echo "$LITELLM_RESPONSE" | grep -oP '"id"\s*:\s*"\K[^"]+' | sort)
+        EXISTING_MODELS=$(echo "$LITELLM_RESPONSE" | grep -oE '"id"\s*:\s*"[^"]+"' | sed 's/"id"[[:space:]]*:[[:space:]]*"//;s/"$//' | sort)
     fi
 
     echo -e "${GREEN}Found $(echo "$EXISTING_MODELS" | grep -c . || echo 0) models in LiteLLM${NC}"
@@ -161,7 +164,7 @@ EOF
         "${LITELLM_URL}/model/new" 2>&1); then
 
         # Check response (LiteLLM returns 200 on success or various status codes)
-        if echo "$RESPONSE" | grep -q '"status":\s*"success"\|"model_name"'; then
+        if echo "$RESPONSE" | grep -qE '"status"[[:space:]]*:[[:space:]]*"success"|"model_name"'; then
             echo -e "${GREEN}✓ Success${NC}"
             ((SUCCESSFUL++))
         elif echo "$RESPONSE" | grep -q '"error"'; then
