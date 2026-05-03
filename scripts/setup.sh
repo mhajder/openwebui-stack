@@ -99,6 +99,24 @@ if [ "$INIT_ENV" = true ]; then
     echo ""
 fi
 
+# 4. SSL Certificates (optional)
+echo -e "${YELLOW}Step 4: SSL Certificates${NC}"
+echo -e "  Traefik generates a self-signed certificate by default."
+echo -e "  It changes on every restart, requiring you to re-accept it in the browser."
+echo -e "  Generating persistent certificates avoids this."
+GENERATE_CERTS=false
+if [ -f "$PROJECT_ROOT/certs/server.crt" ] && [ -f "$PROJECT_ROOT/certs/server.key" ]; then
+    echo -e "${GREEN}✓ Custom certificates already exist${NC}"
+    if prompt_yes_no_default_no "Regenerate certificates?"; then
+        GENERATE_CERTS=true
+    fi
+else
+    if prompt_yes_no_default_no "Generate persistent self-signed certificates?"; then
+        GENERATE_CERTS=true
+    fi
+fi
+echo ""
+
 # Execute steps
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo -e "Executing setup..."
@@ -156,6 +174,12 @@ if [ "$GENERATE_PASSWORDS" = true ]; then
     sed_inplace "s|^TRAEFIK_DASHBOARD_PASSWORD_HASH=.*|TRAEFIK_DASHBOARD_PASSWORD_HASH=$ESCAPED_HASH|" "$PROJECT_ROOT/.env"
 
     echo -e "${GREEN}✓ Generated secure passwords${NC}"
+fi
+
+# Generate SSL certificates
+if [ "$GENERATE_CERTS" = true ]; then
+    export DOMAIN
+    "$SCRIPT_DIR/generate-certs.sh"
 fi
 
 # Make scripts executable

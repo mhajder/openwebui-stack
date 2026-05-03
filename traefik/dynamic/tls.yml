@@ -1,6 +1,15 @@
 # =============================================================================
-# Traefik Dynamic Configuration - TLS
+# Traefik Dynamic Configuration - TLS Options
 # =============================================================================
+# TLS hardening options. These apply regardless of certificate source.
+# When no custom certificates are configured, Traefik uses its built-in
+# self-signed certificate (regenerated on each container restart).
+#
+# To use persistent self-signed certificates, run:
+#   ./scripts/generate-certs.sh
+#
+# This will generate certificates and create the certs.yml dynamic config
+# file that tells Traefik to use them.
 
 tls:
   options:
