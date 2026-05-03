@@ -37,8 +37,8 @@ echo -e "${BLUE}Please provide the following configuration:${NC}"
 echo ""
 
 OLLAMA_PUBLIC_URL=$(prompt_input "Ollama Public URL (accessible from your environment)" "http://localhost:11434")
-OLLAMA_INTERNAL_URL=$(prompt_input "Ollama Internal URL (for LiteLLM, can be same as public)" "$OLLAMA_PUBLIC_URL")
-LITELLM_URL=$(prompt_input "LiteLLM API URL" "http://localhost:4000")
+OLLAMA_INTERNAL_URL=$(prompt_input "Ollama Internal URL (for LiteLLM)" "http://host.docker.internal:11434")
+LITELLM_URL=$(prompt_input "LiteLLM API URL" "https://litellm.localhost")
 LITELLM_MASTER_KEY=$(prompt_input "LiteLLM Master Key" "")
 
 if [ -z "$LITELLM_MASTER_KEY" ]; then
